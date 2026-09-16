@@ -1,0 +1,42 @@
+name: Test Sentinel Action
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-safe-diff:
+    name: Verify Passing Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Sentinel against identical specs
+        uses: ./
+        with:
+          base-spec: 'fixtures/base.json'
+          head-spec: 'fixtures/base.json'
+
+  test-breaking-diff:
+    name: Verify Failing Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Sentinel against broken spec
+        id: sentinel_test
+        continue-on-error: true
+        uses: ./
+        with:
+          base-spec: 'fixtures/base.json'
+          head-spec: 'fixtures/broken.json'
+
+      - name: Assert Failure Occurred
+        if: steps.sentinel_test.outcome != 'failure'
+        run: |
+          echo "Expected Sentinel to block breaking changes, but it passed."
+          exit 1
