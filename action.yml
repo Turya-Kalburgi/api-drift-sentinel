@@ -1,0 +1,18 @@
+name: 'API Drift Sentinel'
+description: 'Detects breaking OpenAPI/Swagger contract changes in Pull Requests and blocks merges.'
+author: 'Turya Kalburgi'
+inputs:
+  base-spec:
+    description: 'Path to baseline OpenAPI file (e.g., origin/main version)'
+    required: true
+    default: 'openapi.json'
+  head-spec:
+    description: 'Path to current PR OpenAPI file'
+    required: true
+    default: 'openapi.json'
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
+branding:
+  icon: 'shield'
+  color: 'red'
