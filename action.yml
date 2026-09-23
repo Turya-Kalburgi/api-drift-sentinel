@@ -10,6 +10,10 @@ inputs:
     description: 'Path to current PR OpenAPI file'
     required: true
     default: 'openapi.json'
+  github-token:
+    description: 'GitHub token to post PR comments'
+    required: false
+    default: ''
 runs:
   using: 'node20'
   main: 'dist/index.js'

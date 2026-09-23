@@ -1,19 +1,66 @@
-import * as fs from 'fs';
 import * as core from '@actions/core';
-const openapiDiff = require('openapi-diff');
+import * as github from '@actions/github';
+import * as fs from 'fs';
+// @ts-ignore
+import openapiDiff from 'openapi-diff';
+
+const COMMENT_TAG = '<!-- api-drift-sentinel-comment -->';
+
+async function postOrUpdatePRComment(token: string, body: string) {
+  const context = github.context;
+
+  const prNumber = context.payload.pull_request?.number;
+  if (!prNumber) {
+    core.info('Not running in a pull_request event context; skipping PR comment.');
+    return;
+  }
+
+  const octokit = github.getOctokit(token);
+  const { owner, repo } = context.repo;
+
+  try {
+    const { data: comments } = await octokit.rest.issues.listComments({
+      owner,
+      repo,
+      issue_number: prNumber,
+    });
+
+    const existingComment = comments.find((c) => c.body?.includes(COMMENT_TAG));
+    const fullBody = `${COMMENT_TAG}\n${body}`;
+
+    if (existingComment) {
+      core.info(`Updating existing Sentinel PR comment (ID: ${existingComment.id})...`);
+      await octokit.rest.issues.updateComment({
+        owner,
+        repo,
+        comment_id: existingComment.id,
+        body: fullBody,
+      });
+    } else {
+      core.info('Posting new Sentinel PR comment...');
+      await octokit.rest.issues.createComment({
+        owner,
+        repo,
+        issue_number: prNumber,
+        body: fullBody,
+      });
+    }
+  } catch (err: any) {
+    core.warning(`Failed to post PR comment: ${err.message}`);
+  }
+}
 
 async function runSentinel() {
   try {
-    const baseFile = core.getInput('base-spec') || process.env.BASE_SPEC || 'fixtures/base.json';
-    const headFile = core.getInput('head-spec') || process.env.HEAD_SPEC || 'fixtures/broken.json';
-
-    core.info(`🔍 Comparing specs: ${baseFile} -> ${headFile}`);
+    const baseFile = core.getInput('base-spec', { required: true });
+    const headFile = core.getInput('head-spec', { required: true });
+    const githubToken = core.getInput('github-token');
 
     if (!fs.existsSync(baseFile)) {
-      throw new Error(`Base spec not found at: ${baseFile}`);
+      throw new Error(`Base spec file not found: ${baseFile}`);
     }
     if (!fs.existsSync(headFile)) {
-      throw new Error(`Head spec not found at: ${headFile}`);
+      throw new Error(`Head spec file not found: ${headFile}`);
     }
 
     const baseContent = fs.readFileSync(baseFile, 'utf8');
@@ -34,8 +81,8 @@ async function runSentinel() {
 
     if (diffResult.breakingDifferencesFound) {
       let message = '🚨 **API Drift Sentinel: Breaking Changes Detected!**\n\n';
-      message += `| Action | Code | Location |\n`;
-      message += `| :----- | :--- | :------- |\n`;
+      message += '| Action | Code | Location |\n';
+      message += '| :----- | :--- | :------- |\n';
 
       for (const item of diffResult.breakingDifferences) {
         const location = item.sourceSpecEntityDetails?.[0]?.location || 'unknown';
@@ -43,6 +90,10 @@ async function runSentinel() {
       }
 
       message += '\n❌ **PR merge blocked.** Please resolve or version breaking changes.';
+
+      if (githubToken) {
+        await postOrUpdatePRComment(githubToken, message);
+      }
 
       core.setFailed(message);
     } else {
