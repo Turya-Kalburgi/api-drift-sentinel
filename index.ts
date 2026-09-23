@@ -8,7 +8,6 @@ const COMMENT_TAG = '<!-- api-drift-sentinel-comment -->';
 
 async function postOrUpdatePRComment(token: string, body: string) {
   const context = github.context;
-
   const prNumber = context.payload.pull_request?.number;
   if (!prNumber) {
     core.info('Not running in a pull_request event context; skipping PR comment.');
@@ -50,11 +49,36 @@ async function postOrUpdatePRComment(token: string, body: string) {
   }
 }
 
+async function reportToSentinelCloud(endpoint: string, token: string, payload: any) {
+  try {
+    core.info(`Sending contract event to Sentinel Cloud (${endpoint})...`);
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'User-Agent': 'api-drift-sentinel-action',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      core.warning(`Sentinel Cloud returned status ${res.status}: ${await res.text()}`);
+    } else {
+      core.info('Successfully recorded event in Sentinel Cloud.');
+    }
+  } catch (err: any) {
+    core.warning(`Sentinel Cloud ingestion error: ${err.message}`);
+  }
+}
+
 async function runSentinel() {
   try {
     const baseFile = core.getInput('base-spec', { required: true });
     const headFile = core.getInput('head-spec', { required: true });
     const githubToken = core.getInput('github-token');
+    const sentinelToken = core.getInput('sentinel-token');
+    const sentinelEndpoint = core.getInput('sentinel-endpoint') || 'https://api.drift-sentinel.com/api/v1/events';
 
     if (!fs.existsSync(baseFile)) {
       throw new Error(`Base spec file not found: ${baseFile}`);
@@ -79,6 +103,18 @@ async function runSentinel() {
       },
     });
 
+    const context = github.context;
+    const payload = {
+      repository: `${context.repo.owner}/${context.repo.repo}`,
+      branch: context.ref,
+      commitSha: context.sha,
+      prNumber: context.payload.pull_request?.number || null,
+      breaking: diffResult.breakingDifferencesFound,
+      breakingCount: diffResult.breakingDifferences?.length || 0,
+      differences: diffResult.breakingDifferences || [],
+      timestamp: new Date().toISOString(),
+    };
+
     if (diffResult.breakingDifferencesFound) {
       let message = '🚨 **API Drift Sentinel: Breaking Changes Detected!**\n\n';
       message += '| Action | Code | Location |\n';
@@ -95,8 +131,15 @@ async function runSentinel() {
         await postOrUpdatePRComment(githubToken, message);
       }
 
+      if (sentinelToken) {
+        await reportToSentinelCloud(sentinelEndpoint, sentinelToken, payload);
+      }
+
       core.setFailed(message);
     } else {
+      if (sentinelToken) {
+        await reportToSentinelCloud(sentinelEndpoint, sentinelToken, payload);
+      }
       core.info('✅ No breaking API changes detected. CI gate passed!');
     }
   } catch (error: any) {

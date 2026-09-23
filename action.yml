@@ -14,6 +14,14 @@ inputs:
     description: 'GitHub token to post PR comments'
     required: false
     default: ''
+  sentinel-token:
+    description: 'API key for Sentinel Cloud Dashboard (optional)'
+    required: false
+    default: ''
+  sentinel-endpoint:
+    description: 'Webhook URL for Sentinel Cloud Dashboard ingestion'
+    required: false
+    default: 'https://api.drift-sentinel.com/api/v1/events'
 runs:
   using: 'node20'
   main: 'dist/index.js'

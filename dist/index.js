@@ -81708,11 +81708,34 @@ ${body}`;
     warning(`Failed to post PR comment: ${err.message}`);
   }
 }
+async function reportToSentinelCloud(endpoint2, token, payload) {
+  try {
+    info(`Sending contract event to Sentinel Cloud (${endpoint2})...`);
+    const res = await fetch(endpoint2, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "User-Agent": "api-drift-sentinel-action"
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      warning(`Sentinel Cloud returned status ${res.status}: ${await res.text()}`);
+    } else {
+      info("Successfully recorded event in Sentinel Cloud.");
+    }
+  } catch (err) {
+    warning(`Sentinel Cloud ingestion error: ${err.message}`);
+  }
+}
 async function runSentinel() {
   try {
     const baseFile = getInput("base-spec", { required: true });
     const headFile = getInput("head-spec", { required: true });
     const githubToken = getInput("github-token");
+    const sentinelToken = getInput("sentinel-token");
+    const sentinelEndpoint = getInput("sentinel-endpoint") || "https://api.drift-sentinel.com/api/v1/events";
     if (!fs2.existsSync(baseFile)) {
       throw new Error(`Base spec file not found: ${baseFile}`);
     }
@@ -81733,6 +81756,17 @@ async function runSentinel() {
         format: "openapi3"
       }
     });
+    const context3 = context2;
+    const payload = {
+      repository: `${context3.repo.owner}/${context3.repo.repo}`,
+      branch: context3.ref,
+      commitSha: context3.sha,
+      prNumber: context3.payload.pull_request?.number || null,
+      breaking: diffResult.breakingDifferencesFound,
+      breakingCount: diffResult.breakingDifferences?.length || 0,
+      differences: diffResult.breakingDifferences || [],
+      timestamp: (/* @__PURE__ */ new Date()).toISOString()
+    };
     if (diffResult.breakingDifferencesFound) {
       let message = "\u{1F6A8} **API Drift Sentinel: Breaking Changes Detected!**\n\n";
       message += "| Action | Code | Location |\n";
@@ -81746,8 +81780,14 @@ async function runSentinel() {
       if (githubToken) {
         await postOrUpdatePRComment(githubToken, message);
       }
+      if (sentinelToken) {
+        await reportToSentinelCloud(sentinelEndpoint, sentinelToken, payload);
+      }
       setFailed(message);
     } else {
+      if (sentinelToken) {
+        await reportToSentinelCloud(sentinelEndpoint, sentinelToken, payload);
+      }
       info("\u2705 No breaking API changes detected. CI gate passed!");
     }
   } catch (error2) {
