@@ -1,45 +1,14 @@
-cat << 'EOF' > README.md
-# API Drift Sentinel ðŸ›¡ï¸
+# API Drift Sentinel ðŸ›¡ðŸ¿
 
-Prevent silent breaking API changes from sneaking into production.
+[![Version](https://img.shields.io/badge/version-1.2.0-silver.svg)](https://github.com/Turya-Kalburgi/api-drift-sentinel)
+[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
+[![Cloud Dashboard](https://img.shields.io/badge/Dashboard-Live-emerald.svg)](https://api-drift-sentinel-cloud.vercel.app)
 
-API Drift Sentinel is a lightweight GitHub Action that compares OpenAPI/Swagger contracts between branches, detects breaking modifications (dropped fields, changed types, removed routes), and blocks PR merges automatically.
-
----
-
-## Features
-
-- **Zero Configuration:** Works out of the box with standard OpenAPI 3.0 / Swagger specs.
-- **Merge Blocker:** Exits with status `1` and emits GitHub annotations when breaking changes are detected.
-- **Fast Execution:** Pre-bundled JavaScript runner with zero runner-side dependency installation.
-
----
-
-## Quickstart
-
-Add this job to `.github/workflows/api-check.yml` in any repository:
-
-```yaml
-name: API Contract Gate
-
-on:
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  check-api-drift:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout PR Branch
-        uses: actions/checkout@v4
-
-      - name: Fetch Baseline Spec from Main
-        run: |
-          git fetch origin main:main
-          git show main:openapi.json > baseline-openapi.json
-
-      - name: Run API Drift Sentinel
-        uses: Turya-Kalburgi/api-drift-sentinel@v1
-        with:
-          base-spec: 'baseline-openapi.json'
-          head-spec: 'openapi.json'
+> AutomatedÔS‘THÛÛ˜XÝšY™]™[[Û‹[™\]Y\Ý›ØÚÚ[™Ë[™˜XÚÝØ\™XÛÛ\]X›H™[YYX][ÛˆÝZY[˜ÙK‚‚‹KKB‚ˆÈÈ8¢hH]ZXÚÜÝ\
+ŒÙXÛÛ™ÊB‚Y™Ú]X‹ÝÛÜšÙ›ÝÜËÜÙ[[™[ž[[È[Ý\ˆ™\ÜÚ]ÜžN‚‚˜X[[›˜[YNˆTHšYÙ[[™[‚›ÛŽ‚ˆ[Ü™\]Y\Ý‚ˆ]Î‚ˆH	ÛÜ[˜\KžX[[	ÂˆH	ÛÜ[˜\KšœÛÛ‰Â‚š›ØœÎ‚ˆÛÛ˜XÝYÛÝ™\›˜[˜ÙN‚ˆ[œË[ÛŽˆX[K[]\Ýˆ\›Z\ÜÚ[ÛœÎ‚ˆÛÛ[Îˆ™XYˆ[\™\]Y\ÝÎˆÜš]B‚ˆÝ\Î‚ˆH˜[YNˆÚXÚÛÝ]˜\ÙHœ˜[˜ÚÜXÂˆ\Ù\ÎˆXÝ[ÛœËØÚXÚÛÝ]ˆÚ]‚ˆ™YŽˆ	ÞÈÚ]X‹˜˜\ÙWÜ™Yˆ_Bˆ]ˆ˜\ÙK\™\Â‚ˆH˜[YNˆÚXÚÛÝ]XYœ˜[˜ÚÜXÂˆ\Ù\ÎˆXÝ[ÛœËØÚXÚÛÝ]ˆÚ]‚ˆ]ˆXY\™\Â‚ˆH˜[YNˆ[ˆTHšYÙ[[™[ˆ\Ù\Îˆ\žXKRØ[\™ÚKØ\KYšY\Ù[[™[ŒKŒ‹ŒˆÚ]‚ˆ˜\ÙK\ÜXÎˆ	Ø˜\ÙK\™\ËÛÜ[˜\KžX[[	ÂˆXY\ÜXÎˆ	ÚXY\™\ËÛÜ[˜\KžX[[	Âˆ˜Z[[Û‹Xœ™XZÚ[™Îˆ	ÝYIÂˆÚ]X‹]ÚÙ[Žˆ	ÞÈÙXÜ™]Ë‘ÒUP—ÕÒÑSˆ_BˆÙ[[™[Y[™Ú[ˆ	ÚÎ‹ËØ\KYšY\Ù[[™[XÛÝY™\˜Ù[˜\Ø\KÝŒKÙ]™[ÉÂˆÙ[[™[]ÚÙ[Žˆ	ÜÙ[[™[Û]™WÜÙXÜ™]LŒÉØ˜‚‹KKB‚ˆÈÈ<'éè™X]\™\Â‹H
+Š›^š[™È˜\ÝY™š[™È
+L\ÊNŠŠˆÝXÝ\˜[ÛÛ\\š\ÛÛˆÙˆÜ[THÛÛ˜XÝÈ™Y›Ü™HY\™ÙK‚‹H
+Š’[›[™HˆÛÛ[Y[ÎŠŠˆÜÝÈ]Z[YXÝ[ÛˆX›\È[™Y™™XÝYØØ][ÛœÈ\™XÝHÛˆ[™\]Y\ÝË‚‹H
+Š”ØY™H™[YYX][ÛˆÝZY[˜ÙNŠŠˆÝYÙÙ\ÝÈ›Û‹Y\ÝXÝ]™HZYÜ˜][Ûˆ[\›˜]]™\È
+\™XØ][Ûˆ\š[ÙËÜ[Û˜[šY[ÊK‚‹H
+ŠÙ[˜[^™YÛÝY™YÚ\ÝžNŠŠˆ™X[][YHš\ÚXš[]HXÜ›ÜÜÈZXÜ›ÜÙ\šXÙ\È]Ø\KYšY\Ù[[™[XÛÝY™\˜Ù[˜\JÎ‹ËØ\KYšY\Ù[[™[XÛÝY™\˜Ù[˜\
