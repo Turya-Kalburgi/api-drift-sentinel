@@ -52,6 +52,9 @@ async function postOrUpdatePRComment(token: string, body: string) {
 async function reportToSentinelCloud(endpoint: string, token: string, payload: any) {
   try {
     core.info(`Sending contract event to Sentinel Cloud (${endpoint})...`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -60,7 +63,9 @@ async function reportToSentinelCloud(endpoint: string, token: string, payload: a
         'User-Agent': 'api-drift-sentinel-action',
       },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       core.warning(`Sentinel Cloud returned status ${res.status}: ${await res.text()}`);

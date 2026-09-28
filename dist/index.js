@@ -81711,6 +81711,8 @@ ${body}`;
 async function reportToSentinelCloud(endpoint2, token, payload) {
   try {
     info(`Sending contract event to Sentinel Cloud (${endpoint2})...`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5e3);
     const res = await fetch(endpoint2, {
       method: "POST",
       headers: {
@@ -81718,8 +81720,10 @@ async function reportToSentinelCloud(endpoint2, token, payload) {
         "Authorization": `Bearer ${token}`,
         "User-Agent": "api-drift-sentinel-action"
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
     if (!res.ok) {
       warning(`Sentinel Cloud returned status ${res.status}: ${await res.text()}`);
     } else {
